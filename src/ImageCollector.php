@@ -72,7 +72,7 @@ class ImageCollector
 
         $pathInfo = pathinfo($src);
 
-        $modified = (int)filemtime($file);
+        $modified = (int) filemtime($file);
 
         $cacheFileName = $pathInfo['filename'] . '@' . $format . '@' . $modified;
 
