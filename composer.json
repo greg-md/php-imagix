@@ -1,0 +1,30 @@
+{
+  "name": "greg-md/php-static-image",
+  "type": "library",
+  "description": "Greg PHP Static Image",
+  "keywords": [ "greg", "php-static-image" ],
+  "homepage": "https://github.com/greg-md/php-static-image",
+  "license": "MIT",
+  "authors": [
+    { "name": "Grigorii Duca", "email": "contact@greg.md", "homepage": "http://greg.md/" }
+  ],
+  "minimum-stability": "dev",
+  "require": {
+    "php": "^5.6 || ^7.0",
+    "intervention/image": "dev-master",
+    "greg-md/php-support": "dev-master"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "5.5.*"
+  },
+  "autoload": {
+    "psr-4": {
+      "Greg\\StaticImage\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Greg\\StaticImage\\Tests\\": "tests/"
+    }
+  }
+}
