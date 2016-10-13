@@ -1,6 +1,6 @@
 # Greg PHP Static Image
 
-[![StyleCI](https://styleci.io/repos/66374374/shield?style=flat)](https://styleci.io/repos/66374374)
+[![StyleCI](https://styleci.io/repos/70835580/shield?style=flat)](https://styleci.io/repos/70835580)
 [![Build Status](https://travis-ci.org/greg-md/php-static-image.svg)](https://travis-ci.org/greg-md/php-static-image)
 [![Total Downloads](https://poser.pugx.org/greg-md/php-static-image/d/total.svg)](https://packagist.org/packages/greg-md/php-static-image)
 [![Latest Stable Version](https://poser.pugx.org/greg-md/php-static-image/v/stable.svg)](https://packagist.org/packages/greg-md/php-static-image)
