@@ -124,13 +124,19 @@ class ImageCollector
 
         $src = $cacheSrcInfo['dirname'] . '/' . $cacheFileName . '.' . $cacheSrcInfo['extension'];
 
+        if (!Str::startsWith($src, $this->getPublicPath())) {
+            throw new \Exception('Image is not from cache folder.');
+        }
+
+        $src = Str::shift($src, $this->getPublicPath());
+
         if (!$file = $this->checkImage($this->getSourcePath(), $src)) {
             throw new \Exception('Original source not exists.');
         }
 
         $newCacheSrc = $this->fetchCacheSrc($src, $formatName);
 
-        if ($cacheSrc !== $newCacheSrc) {
+        if ($cacheSrc !== $this->getPublicPath() . $newCacheSrc) {
             Response::sendLocation($this->getPublicPath() . $newCacheSrc, 301);
 
             return $this;
@@ -140,7 +146,7 @@ class ImageCollector
 
         File::fixFileDirRecursive($newCacheFile);
 
-        $this->removeOldFiles($src, $formatName);
+        $this->removeOldFiles($this->getPublicPath() . $src, $formatName);
 
         $image = $this->getManager()->make($file);
 
