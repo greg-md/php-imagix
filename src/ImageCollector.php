@@ -8,236 +8,244 @@ use Greg\Support\Http\Response;
 use Greg\Support\Image;
 use Greg\Support\Obj;
 use Greg\Support\Str;
-use Greg\Support\Url;
 use Intervention\Image\ImageManager;
 
 class ImageCollector
 {
-    protected $sourcePath = null;
+    private $sourcePath = null;
 
-    protected $cachePath = null;
+    private $destinationPath = null;
 
-    protected $publicPath = '/';
+    private $formats = [];
 
-    protected $formats = [];
+    private $manager = null;
 
-    protected $manager = null;
-
-    public function __construct(ImageManager $manager, $sourcePath, $cachePath, $publicPath = '/')
+    public function __construct(ImageManager $manager, $sourcePath, $destinationPath)
     {
         $this->manager = $manager;
 
         $this->setSourcePath($sourcePath);
 
-        $this->setCachePath($cachePath);
-
-        $this->setPublicPath($publicPath);
+        $this->setDestinationPath($destinationPath);
 
         return $this;
     }
 
-    public function url($src, $format)
+    public function sourcePath()
     {
-        if (Url::isFull($src)) {
-            return $src;
-        }
-
-        $cacheSrc = $this->fetchCacheSrc($src, $format);
-
-        return $cacheSrc ? Url::base($this->getPublicPath() . $cacheSrc) : $src;
+        return $this->sourcePath;
     }
 
-    public function getOrigin($src)
+    public function destinationPath()
     {
-        if (($path = $this->getPublicPath()) && !Str::startsWith($src, $path)) {
-            return $src;
-        }
-
-        $cacheSrcInfo = pathinfo($src);
-
-        list($cacheFileName) = explode('@', $cacheSrcInfo['filename']);
-
-        $src = $cacheSrcInfo['dirname'] . '/' . $cacheFileName . '.' . $cacheSrcInfo['extension'];
-
-        return Str::shift($src, $this->getPublicPath());
+        return $this->destinationPath;
     }
 
-    protected function fetchCacheSrc($src, $format)
+    public function manager()
     {
-        $file = $this->getSourcePath() . $src;
-
-        if (!file_exists($file)) {
-            return null;
-        }
-
-        $pathInfo = pathinfo($src);
-
-        $modified = (int) filemtime($file);
-
-        $cacheFileName = $pathInfo['filename'] . '@' . $format . '@' . $modified;
-
-        $path = $pathInfo['dirname'];
-
-        if ($path == '/') {
-            $path = null;
-        }
-
-        $cacheSrc = $path . '/' . $cacheFileName . '.' . $pathInfo['extension'];
-
-        return $cacheSrc;
+        return $this->manager;
     }
 
-    protected function checkImage($root, $src)
-    {
-        if ($file = realpath($root . $src)) {
-            if (!Str::startsWith($file, $root)) {
-                throw new \Exception('You are not allowed in this path.');
-            }
-
-            if (!Image::isFile($file)) {
-                throw new \Exception('File is not an image.');
-            }
-        }
-
-        return $file;
-    }
-
-    public function run($cacheSrc)
-    {
-        if (!$cacheSrc) {
-            throw new \Exception('Undefined cache source.');
-        }
-
-        if ($cacheFile = $this->checkImage($this->getCachePath(), $cacheSrc)) {
-            Response::isModifiedSince(filemtime($cacheFile));
-
-            Response::sendImageFile($cacheFile);
-
-            return $this;
-        }
-
-        $cacheSrcInfo = pathinfo($cacheSrc);
-
-        list($cacheFileName, $formatName) = explode('@', $cacheSrcInfo['filename']);
-
-        $format = $this->getFormat($formatName);
-
-        $src = $cacheSrcInfo['dirname'] . '/' . $cacheFileName . '.' . $cacheSrcInfo['extension'];
-
-        if (!Str::startsWith($src, $this->getPublicPath())) {
-            throw new \Exception('Image is not from cache folder.');
-        }
-
-        $src = Str::shift($src, $this->getPublicPath());
-
-        if (!$file = $this->checkImage($this->getSourcePath(), $src)) {
-            throw new \Exception('Original source not exists.');
-        }
-
-        $newCacheSrc = $this->fetchCacheSrc($src, $formatName);
-
-        if ($cacheSrc !== $this->getPublicPath() . $newCacheSrc) {
-            Response::sendLocation($this->getPublicPath() . $newCacheSrc, 301);
-
-            return $this;
-        }
-
-        $newCacheFile = $this->getCachePath() . $newCacheSrc;
-
-        File::fixFileDirRecursive($newCacheFile);
-
-        $this->removeOldFiles($this->getPublicPath() . $src, $formatName);
-
-        $image = $this->getManager()->make($file);
-
-        Obj::callCallableWith($format, $image);
-
-        $image->save($newCacheFile);
-
-        echo $image->response();
-
-        return $this;
-    }
-
-    protected function removeOldFiles($src, $format)
-    {
-        $info = pathinfo($src);
-
-        $fileNames = $info['filename'] . '@' . $format . '@*';
-
-        $oldCacheFiles = $this->getCachePath() . $info['dirname'] . '/' . $fileNames . '.' . $info['extension'];
-
-        array_map('unlink', glob($oldCacheFiles));
-
-        return $this;
-    }
-
-    public function hasFormat($format)
-    {
-        return Arr::has($this->formats, $format);
-    }
-
-    public function getFormat($format)
-    {
-        if (!$this->hasFormat($format)) {
-            throw new \Exception('Image cache format not found.');
-        }
-
-        return $this->formats[$format];
-    }
-
-    public function addFormat($name, callable $callable)
+    public function format($name, callable $callable)
     {
         $this->formats[$name] = $callable;
 
         return $this;
     }
 
-    public function setSourcePath($path)
+    public function destination($source, $format)
+    {
+        $this->checkSource($source);
+
+        $this->checkFormat($format);
+
+        if (!$sourceFile = $this->realFile($this->sourcePath, $source)) {
+            return $source;
+        }
+
+        $destinationName = pathinfo($source, PATHINFO_FILENAME) . '@' . $format . '@' . (int) filemtime($sourceFile);
+
+        if ($destinationExtension = pathinfo($source, PATHINFO_EXTENSION)) {
+            $destinationExtension = '.' . $destinationExtension;
+        }
+
+        return $this->baseDir($source) . '/' . $destinationName . $destinationExtension;
+    }
+
+    public function source($destination)
+    {
+        $this->checkDestination($destination);
+
+        $destinationName = pathinfo($destination, PATHINFO_FILENAME);
+
+        if (strpos($destinationName, '@') === false) {
+            throw new \Exception('Wrong destination file format.');
+        }
+
+        list($sourceName, $format) = explode('@', $destinationName);
+
+        $this->checkFormat($format);
+
+        if ($sourceExtension = pathinfo($destination, PATHINFO_EXTENSION)) {
+            $sourceExtension = '.' . $sourceExtension;
+        }
+
+        $source = $this->baseDir($destination) . '/' . $sourceName . $sourceExtension;
+
+        return [$source, $format];
+    }
+
+    public function currentDestination($destination)
+    {
+        list($source, $formatName) = $this->source($destination);
+
+        return $this->destination($source, $formatName);
+    }
+
+    public function image($destination)
+    {
+        $this->checkDestination($destination);
+
+        $destinationFile = $this->imageFile($this->destinationPath, $destination);
+
+        list($source, $formatName) = $this->source($destination);
+
+        if (!$sourceFile = $this->imageFile($this->sourcePath, $source)) {
+            $this->removeOldFiles($source, $formatName);
+
+            throw new \Exception('Source file does not exists.');
+        }
+
+        if ($destinationFile) {
+            return $destinationFile;
+        }
+
+        $this->removeOldFiles($source, $formatName);
+
+        $currentDestination = $this->destination($source, $formatName);
+
+        $currentDestinationFile = $this->destinationPath . $currentDestination;
+
+        $this->generate($sourceFile, $currentDestinationFile, $formatName);
+
+        return $currentDestinationFile;
+    }
+
+    public function send($destination)
+    {
+        if ($destination !== ($currentDestination = $this->currentDestination($destination))) {
+            Response::sendLocation($currentDestination, 301);
+
+            return $this;
+        }
+
+        $destinationFile = $this->image($destination);
+
+        if (!Response::unmodified(filemtime($destinationFile))) {
+            Response::sendImage($destinationFile);
+        }
+
+        return $this;
+    }
+
+    protected function generate($source, $destination, $format)
+    {
+        File::makeDir($destination);
+
+        $image = $this->manager->make($source);
+
+        Obj::call($this->formats[$format], $image);
+
+        $image->save($destination);
+    }
+
+    protected function checkSource($source)
+    {
+        if (!pathinfo($source, PATHINFO_FILENAME)) {
+            throw new \Exception('Source is not a file.');
+        }
+
+        return $this;
+    }
+
+    protected function checkDestination($destination)
+    {
+        if (!pathinfo($destination, PATHINFO_FILENAME)) {
+            throw new \Exception('Destination is not a file.');
+        }
+
+        return $this;
+    }
+
+    protected function baseDir($path)
+    {
+        $path = pathinfo($path, PATHINFO_DIRNAME);
+
+        return $path !== '/' ? $path : '';
+    }
+
+    protected function realFile($path, $name)
+    {
+        return ($file = realpath($path . $name) and Str::startsWith($file, $path)) ? $file : null;
+    }
+
+    protected function setSourcePath($path)
     {
         $this->sourcePath = (string) $path;
 
         return $this;
     }
 
-    public function getSourcePath()
+    protected function setDestinationPath($path)
     {
-        return $this->sourcePath;
-    }
-
-    public function setCachePath($path)
-    {
-        $this->cachePath = (string) $path;
+        $this->destinationPath = (string) $path;
 
         return $this;
     }
 
-    public function getCachePath()
+    protected function hasFormat($format)
     {
-        return $this->cachePath;
+        return Arr::has($this->formats, $format);
     }
 
-    public function setPublicPath($path)
+    protected function checkFormat($format)
     {
-        $this->publicPath = (string) $path;
+        if (!$this->hasFormat($format)) {
+            throw new \Exception('Image format `' . $format . '` was not defined.');
+        }
 
         return $this;
     }
 
-    public function getPublicPath()
+    protected function imageFile($path, $name)
     {
-        return $this->publicPath;
+        if ($file = realpath($path . $name)) {
+            if (!Str::startsWith($file, $path)) {
+                throw new \Exception('You are not allowed in this path.');
+            }
+
+            Image::check($file);
+        }
+
+        return $file;
     }
 
-    public function setManager(ImageManager $manager)
+    protected function removeOldFiles($source, $format)
     {
-        $this->manager = $manager;
+        $sourceName = pathinfo($source, PATHINFO_FILENAME);
+
+        $destinationNames = $sourceName . '@' . $format . '@*';
+
+        $destinationPath = $this->baseDir($source);
+
+        if ($destinationExtension = pathinfo($source, PATHINFO_EXTENSION)) {
+            $destinationExtension = '.' . $destinationExtension;
+        }
+
+        $destinations = $destinationPath . '/' . $destinationNames . $destinationExtension;
+
+        array_map('unlink', glob($this->destinationPath . $destinations));
 
         return $this;
-    }
-
-    public function getManager()
-    {
-        return $this->manager;
     }
 }
