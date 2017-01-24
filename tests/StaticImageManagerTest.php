@@ -9,7 +9,7 @@ use Intervention\Image\Image;
 use Intervention\Image\ImageManager;
 use PHPUnit\Framework\TestCase;
 
-class ImageCollectorTest extends TestCase
+class StaticImageManagerTest extends TestCase
 {
     /**
      * @var StaticImageManager
