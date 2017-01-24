@@ -74,7 +74,7 @@ To see the results, you have to config your `http server`.
 ```nginxconfig
 location ~* ^/static/ {
     if (!-f $document_root$uri) {
-        rewrite ^/static/.+ /image.php last;
+        rewrite .+ /image.php last;
     }
 
     expires max;
