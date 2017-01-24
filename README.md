@@ -40,7 +40,9 @@ $sourcePath = __DIR__ . '/img';
 
 $destinationPath = __DIR__ . '/static';
 
-$manager = new \Greg\StaticImage\StaticImageManager(new ImageManager(), $sourcePath, $destinationPath, new StaticDecorator());
+$manager = new \Greg\StaticImage\StaticImageManager(
+    new Intervention\Image\ImageManager(), $sourcePath, $destinationPath, new StaticDecorator()
+);
 ```
 
 **Next**, create image formats.
