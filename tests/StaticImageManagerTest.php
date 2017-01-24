@@ -2,7 +2,7 @@
 
 namespace Greg\StaticImage\Tests;
 
-use Greg\StaticImage\ImageCollector;
+use Greg\StaticImage\StaticImageManager;
 use Greg\Support\Dir;
 use Intervention\Image\Constraint;
 use Intervention\Image\Image;
@@ -12,7 +12,7 @@ use PHPUnit\Framework\TestCase;
 class ImageCollectorTest extends TestCase
 {
     /**
-     * @var ImageCollector
+     * @var StaticImageManager
      */
     private $collector = null;
 
@@ -22,7 +22,7 @@ class ImageCollectorTest extends TestCase
 
         Dir::make(__DIR__ . '/static');
 
-        $this->collector = new ImageCollector(new ImageManager(), __DIR__ . '/img', __DIR__ . '/static');
+        $this->collector = new StaticImageManager(new ImageManager(), __DIR__ . '/img', __DIR__ . '/static');
 
         $this->collector->format('favicon', function (Image $image) {
             $image->resize(128, 128, function (Constraint $constraint) {
@@ -54,9 +54,9 @@ class ImageCollectorTest extends TestCase
     {
         $destination = '/favicon@favicon@' . filemtime(__DIR__ . '/img/favicon.png') . '.png';
 
-        $this->assertEquals($destination, $this->collector->destination('/favicon.png', 'favicon'));
+        $this->assertEquals($destination, $this->collector->url('/favicon.png', 'favicon'));
 
-        $this->assertEquals($destination, $this->collector->destination('/favicon.png', 'favicon'));
+        $this->assertEquals($destination, $this->collector->url('/favicon.png', 'favicon'));
 
         $this->assertEquals(['/favicon.png', 'favicon'], $this->collector->source($destination));
     }
@@ -64,7 +64,7 @@ class ImageCollectorTest extends TestCase
     /** @test */
     public function it_returns_empty()
     {
-        $this->assertEquals('/foo', $this->collector->destination('/foo', 'favicon'));
+        $this->assertEquals('/foo', $this->collector->url('/foo', 'favicon'));
     }
 
     /** @test */
@@ -72,7 +72,7 @@ class ImageCollectorTest extends TestCase
     {
         $this->expectException(\Exception::class);
 
-        $this->collector->destination('/favicon.png', 'undefined');
+        $this->collector->url('/favicon.png', 'undefined');
     }
 
     /** @test */
@@ -88,7 +88,7 @@ class ImageCollectorTest extends TestCase
     {
         $this->expectException(\Exception::class);
 
-        $this->collector->destination('', 'format');
+        $this->collector->url('', 'format');
     }
 
     /** @test */

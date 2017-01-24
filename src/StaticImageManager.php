@@ -10,7 +10,7 @@ use Greg\Support\Obj;
 use Greg\Support\Str;
 use Intervention\Image\ImageManager;
 
-class ImageCollector
+class StaticImageManager
 {
     private $sourcePath = null;
 
@@ -20,13 +20,20 @@ class ImageCollector
 
     private $manager = null;
 
-    public function __construct(ImageManager $manager, $sourcePath, $destinationPath)
+    /**
+     * @var ImageDecoratorStrategy|null
+     */
+    private $decorator = null;
+
+    public function __construct(ImageManager $manager, $sourcePath, $destinationPath, ImageDecoratorStrategy $decorator = null)
     {
         $this->manager = $manager;
 
         $this->setSourcePath($sourcePath);
 
         $this->setDestinationPath($destinationPath);
+
+        $this->decorator = $decorator;
 
         return $this;
     }
@@ -53,7 +60,7 @@ class ImageCollector
         return $this;
     }
 
-    public function destination($source, $format)
+    public function url($source, $format)
     {
         $this->checkSource($source);
 
@@ -69,12 +76,22 @@ class ImageCollector
             $destinationExtension = '.' . $destinationExtension;
         }
 
-        return $this->baseDir($source) . '/' . $destinationName . $destinationExtension;
+        $url = $this->baseDir($source) . '/' . $destinationName . $destinationExtension;
+
+        if ($this->decorator) {
+            $this->decorator->output($url);
+        }
+
+        return $url;
     }
 
     public function source($destination)
     {
         $this->checkDestination($destination);
+
+        if ($this->decorator) {
+            $destination = $this->decorator->input($destination);
+        }
 
         $destinationName = pathinfo($destination, PATHINFO_FILENAME);
 
@@ -95,16 +112,20 @@ class ImageCollector
         return [$source, $format];
     }
 
-    public function currentDestination($destination)
+    public function effectiveUrl($destination)
     {
         list($source, $formatName) = $this->source($destination);
 
-        return $this->destination($source, $formatName);
+        return $this->url($source, $formatName);
     }
 
     public function image($destination)
     {
         $this->checkDestination($destination);
+
+        if ($this->decorator) {
+            $destination = $this->decorator->input($destination);
+        }
 
         $destinationFile = $this->imageFile($this->destinationPath, $destination);
 
@@ -122,7 +143,7 @@ class ImageCollector
 
         $this->removeOldFiles($source, $formatName);
 
-        $currentDestination = $this->destination($source, $formatName);
+        $currentDestination = $this->url($source, $formatName);
 
         $currentDestinationFile = $this->destinationPath . $currentDestination;
 
@@ -133,7 +154,7 @@ class ImageCollector
 
     public function send($destination)
     {
-        if ($destination !== ($currentDestination = $this->currentDestination($destination))) {
+        if ($destination !== ($currentDestination = $this->effectiveUrl($destination))) {
             Response::sendLocation($currentDestination, 301);
 
             return $this;
