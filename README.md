@@ -15,7 +15,7 @@ Cache images in real-time in different formats using [Intervention Image](http:/
 
 # How It Works
 
-**First of all**, you have to create a manager and an URL decorator for it.
+**First of all**, you have to create a manager and optionally an URL decorator for it.
 
 The decorator helps you to rewrite image urls to/from HTTP Server(Apache/Nginx).
 
@@ -67,7 +67,7 @@ $imageUrl = $manager->url('/pictures/picture.jpg', 'square');
 echo '<img src="' . $imageUrl . '" width="600" height="600" alt="Picture" />';
 ```
 
-To see the results, you have to config your http server.
+To see the results, you have to config your `http server`.
 
 **Nginx**
 
@@ -84,7 +84,7 @@ location ~* ^/static/ {
 }
 ```
 
-In **image.php** you will dispatch new files that was not generated yet in /static path.
+In **image.php** you will dispatch new files that was not generated yet in `/static` path.
 
 ```php
 $manager->send($_SERVER['REQUEST_URI']);
