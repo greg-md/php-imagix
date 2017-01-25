@@ -11,6 +11,13 @@ Save images as static in real-time in different formats using [Intervention Imag
 
 You don't care anymore about generating new images from their sources when your app UI was changed. Only thing you should do is to add new formats or change existent.
 
+# Table of contents:
+
+* [Requirements](#requirements)
+* [How It Works](#how-it-works)
+* [Magic methods](#magic-methods)
+* [Methods](#methods)
+
 # Requirements
 
 * PHP Version `^5.6 || ^7.0`
@@ -91,6 +98,40 @@ In **image.php** you will dispatch new files that was not generated yet in `/sta
 
 ```php
 $manager->send($_SERVER['REQUEST_URI']);
+```
+
+# Magic Methods
+
+* [__construct](#__construct);
+
+## __construct
+
+Initialize a manager with a decorator.
+
+```php
+class StaticDecorator implements ImageDecoratorStrategy
+{
+    // In Nginx we will use /static path for static content.
+    private $nginxUri = '/static';
+    
+    public function output($url)
+    {
+        return $this->nginxUri . $url;
+    }
+
+    public function input($url)
+    {
+        return \Greg\Support\Str::shift($url, $this->nginxUri);
+    }
+}
+
+$sourcePath = __DIR__ . '/img';
+
+$destinationPath = __DIR__ . '/static';
+
+$manager = new \Greg\StaticImage\StaticImageManager(
+    new Intervention\Image\ImageManager(), $sourcePath, $destinationPath, new StaticDecorator()
+);
 ```
 
 # Methods
