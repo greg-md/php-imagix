@@ -106,7 +106,7 @@ $manager->send($_SERVER['REQUEST_URI']);
 
 ## __construct
 
-Initialize a manager with a decorator.
+Initialize the manager.
 
 _Example:_
 
