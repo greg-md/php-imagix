@@ -7,7 +7,9 @@
 [![Latest Unstable Version](https://poser.pugx.org/greg-md/php-static-image/v/unstable.svg)](https://packagist.org/packages/greg-md/php-static-image)
 [![License](https://poser.pugx.org/greg-md/php-static-image/license.svg)](https://packagist.org/packages/greg-md/php-static-image)
 
-Cache images in real-time in different formats using [Intervention Image](http://image.intervention.io/).
+Save images as static in real-time in different formats using [Intervention Image](http://image.intervention.io/).
+
+You don't care anymore about generating new images from their sources when your app UI was changed. Only thing you should do is to add new formats or change existent.
 
 # Requirements
 
