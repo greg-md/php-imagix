@@ -40,16 +40,6 @@ class StaticImageManagerTest extends TestCase
     }
 
     /** @test */
-    public function it_checks_data()
-    {
-        $this->assertEquals(__DIR__ . '/img', $this->collector->sourcePath());
-
-        $this->assertEquals(__DIR__ . '/static', $this->collector->destinationPath());
-
-        $this->assertInstanceOf(ImageManager::class, $this->collector->manager());
-    }
-
-    /** @test */
     public function it_gets_formatted_url()
     {
         $destination = '/favicon@favicon@' . filemtime(__DIR__ . '/img/favicon.png') . '.png';
@@ -96,10 +86,10 @@ class StaticImageManagerTest extends TestCase
     {
         $destination = '/favicon@favicon@' . filemtime(__DIR__ . '/img/favicon.png') . '.png';
 
-        $this->assertEquals(__DIR__ . '/static' . $destination, $this->collector->image($destination));
+        $this->assertEquals(__DIR__ . '/static' . $destination, $this->collector->compile($destination));
 
         // Load from cache
-        $this->assertEquals(__DIR__ . '/static' . $destination, $this->collector->image($destination));
+        $this->assertEquals(__DIR__ . '/static' . $destination, $this->collector->compile($destination));
     }
 
     /** @test */
@@ -107,7 +97,7 @@ class StaticImageManagerTest extends TestCase
     {
         $this->expectException(\Exception::class);
 
-        $this->collector->image('');
+        $this->collector->compile('');
     }
 
     /** @test */
@@ -115,7 +105,7 @@ class StaticImageManagerTest extends TestCase
     {
         $this->expectException(\Exception::class);
 
-        $this->collector->image('/foo');
+        $this->collector->compile('/foo');
     }
 
     /** @test */
@@ -127,11 +117,11 @@ class StaticImageManagerTest extends TestCase
 
         $destination = '/favicon2@favicon@' . filemtime(__DIR__ . '/img/favicon2.png') . '.png';
 
-        $this->collector->image($destination);
+        $this->collector->compile($destination);
 
         unlink(__DIR__ . '/img/favicon2.png');
 
-        $this->collector->image($destination);
+        $this->collector->compile($destination);
     }
 
     /** @test */
@@ -139,7 +129,7 @@ class StaticImageManagerTest extends TestCase
     {
         $this->expectException(\Exception::class);
 
-        $this->collector->image('/../ImageCollectorTest.php');
+        $this->collector->compile('/../ImageCollectorTest.php');
     }
 
     /**
