@@ -2,7 +2,8 @@
 
 namespace Greg\StaticImage;
 
-use Greg\Support\Arr;
+use Greg\Support\Accessor\AccessorTrait;
+use Greg\Support\Dir;
 use Greg\Support\File;
 use Greg\Support\Http\Response;
 use Greg\Support\Image;
@@ -12,12 +13,15 @@ use Intervention\Image\ImageManager;
 
 class StaticImageManager
 {
+    use AccessorTrait;
+
     private $sourcePath = null;
 
     private $destinationPath = null;
 
-    private $formats = [];
-
+    /**
+     * @var ImageManager
+     */
     private $manager = null;
 
     /**
@@ -27,7 +31,7 @@ class StaticImageManager
 
     public function __construct(ImageManager $manager, $sourcePath, $destinationPath, ImageDecoratorStrategy $decorator = null)
     {
-        $this->manager = $manager;
+        $this->setManager($manager);
 
         $this->setSourcePath($sourcePath);
 
@@ -38,24 +42,57 @@ class StaticImageManager
         return $this;
     }
 
-    public function sourcePath()
+    protected function setSourcePath($path)
+    {
+        $this->sourcePath = (string) $path;
+
+        return $this;
+    }
+
+    protected function getSourcePath()
     {
         return $this->sourcePath;
     }
 
-    public function destinationPath()
+    protected function setDestinationPath($path)
+    {
+        $this->destinationPath = (string) $path;
+
+        return $this;
+    }
+
+    protected function getDestinationPath()
     {
         return $this->destinationPath;
     }
 
-    public function manager()
+    protected function setManager(ImageManager $manager)
+    {
+        $this->manager = $manager;
+
+        return $this;
+    }
+
+    protected function getManager()
     {
         return $this->manager;
     }
 
+    protected function setDecorator(ImageDecoratorStrategy $decorator)
+    {
+        $this->decorator = $decorator;
+
+        return $this;
+    }
+
+    protected function getDecorator()
+    {
+        return $this->decorator;
+    }
+
     public function format($name, callable $callable)
     {
-        $this->formats[$name] = $callable;
+        $this->setToAccessor($name, $callable);
 
         return $this;
     }
@@ -112,14 +149,14 @@ class StaticImageManager
         return [$source, $format];
     }
 
-    public function effectiveUrl($destination)
+    public function effective($destination)
     {
         list($source, $formatName) = $this->source($destination);
 
         return $this->url($source, $formatName);
     }
 
-    public function image($destination)
+    public function compile($destination)
     {
         $this->checkDestination($destination);
 
@@ -132,7 +169,7 @@ class StaticImageManager
         list($source, $formatName) = $this->source($destination);
 
         if (!$sourceFile = $this->imageFile($this->sourcePath, $source)) {
-            $this->removeOldFiles($source, $formatName);
+            $this->unlink($source, $formatName);
 
             throw new \Exception('Source file does not exists.');
         }
@@ -141,7 +178,7 @@ class StaticImageManager
             return $destinationFile;
         }
 
-        $this->removeOldFiles($source, $formatName);
+        $this->unlink($source, $formatName);
 
         $currentDestination = $this->url($source, $formatName);
 
@@ -154,13 +191,13 @@ class StaticImageManager
 
     public function send($destination)
     {
-        if ($destination !== ($currentDestination = $this->effectiveUrl($destination))) {
+        if ($destination !== ($currentDestination = $this->effective($destination))) {
             Response::sendLocation($currentDestination, 301);
 
             return $this;
         }
 
-        $destinationFile = $this->image($destination);
+        $destinationFile = $this->compile($destination);
 
         if (!Response::unmodified(filemtime($destinationFile))) {
             Response::sendImage($destinationFile);
@@ -169,13 +206,82 @@ class StaticImageManager
         return $this;
     }
 
+    public function unlink($source, $format = null, $lifetime = 0)
+    {
+        $sourceName = pathinfo($source, PATHINFO_FILENAME);
+
+        $destinationNames = $sourceName . '@' . ($format ?: '*') . '@*';
+
+        $destinationPath = $this->baseDir($source);
+
+        if ($destinationExtension = pathinfo($source, PATHINFO_EXTENSION)) {
+            $destinationExtension = '.' . $destinationExtension;
+        }
+
+        $destinations = $destinationPath . '/' . $destinationNames . $destinationExtension;
+
+        $this->unlinkExpired($destinations, $lifetime);
+
+        return $this;
+    }
+
+    public function remove($format = null, $lifetime = 0)
+    {
+        if ($format) {
+            $this->unlinkExpired('/*@' . $format . '@*.*', $lifetime);
+        } else {
+            if ($lifetime) {
+                $this->unlinkExpired('/*@*@*.*', $lifetime);
+            } else {
+                Dir::unlink($this->destinationPath);
+            }
+        }
+
+        return $this;
+    }
+
+    protected function unlinkExpired($search, $lifetime = 0)
+    {
+        $files = glob($this->destinationPath . $search);
+
+        if ($lifetime > 0) {
+            $time = time();
+
+            foreach ($files as $file) {
+                if (filemtime($file) < $time - $lifetime) {
+                    unlink($file);
+                }
+            }
+        } else {
+            array_map('unlink', $files);
+        }
+
+        return $this;
+    }
+
+    protected function hasFormat($name)
+    {
+        return $this->inAccessor($name);
+    }
+
+    protected function getFormat($name = null)
+    {
+        if (func_num_args()) {
+            $this->checkFormat($name);
+
+            return $this->getFromAccessor($name);
+        }
+
+        return $this->getAccessor();
+    }
+
     protected function generate($source, $destination, $format)
     {
         File::makeDir($destination);
 
         $image = $this->manager->make($source);
 
-        Obj::call($this->formats[$format], $image);
+        Obj::call($this->getFormat($format), $image);
 
         $image->save($destination);
     }
@@ -210,25 +316,6 @@ class StaticImageManager
         return ($file = realpath($path . $name) and Str::startsWith($file, $path)) ? $file : null;
     }
 
-    protected function setSourcePath($path)
-    {
-        $this->sourcePath = (string) $path;
-
-        return $this;
-    }
-
-    protected function setDestinationPath($path)
-    {
-        $this->destinationPath = (string) $path;
-
-        return $this;
-    }
-
-    protected function hasFormat($format)
-    {
-        return Arr::has($this->formats, $format);
-    }
-
     protected function checkFormat($format)
     {
         if (!$this->hasFormat($format)) {
@@ -249,24 +336,5 @@ class StaticImageManager
         }
 
         return $file;
-    }
-
-    protected function removeOldFiles($source, $format)
-    {
-        $sourceName = pathinfo($source, PATHINFO_FILENAME);
-
-        $destinationNames = $sourceName . '@' . $format . '@*';
-
-        $destinationPath = $this->baseDir($source);
-
-        if ($destinationExtension = pathinfo($source, PATHINFO_EXTENSION)) {
-            $destinationExtension = '.' . $destinationExtension;
-        }
-
-        $destinations = $destinationPath . '/' . $destinationNames . $destinationExtension;
-
-        array_map('unlink', glob($this->destinationPath . $destinations));
-
-        return $this;
     }
 }
