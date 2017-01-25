@@ -102,7 +102,7 @@ $manager->send($_SERVER['REQUEST_URI']);
 
 # Magic Methods
 
-* [__construct](#__construct);
+* [__construct](#__construct)
 
 ## __construct
 
