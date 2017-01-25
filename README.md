@@ -108,6 +108,8 @@ $manager->send($_SERVER['REQUEST_URI']);
 
 Initialize a manager with a decorator.
 
+_Example:_
+
 ```php
 class StaticDecorator implements ImageDecoratorStrategy
 {
