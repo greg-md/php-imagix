@@ -210,9 +210,9 @@ Get effective URL of a formatted image URL.
 Every time a image changes, it's effective URL also changes.
 So, if you have an old URL, you will get the new one.
 
->> This is useful when you store somewhere formatted urls.
+> This is useful when you store somewhere formatted urls.
 
->> By default, [`send`](#send) method will return a 301 redirect to the new URL.
+> By default, [`send`](#send) method will return a 301 redirect to the new URL.
 
 ```php
 effective(string $destination): string
