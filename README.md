@@ -75,6 +75,7 @@ To see the results, you have to config your `http server`.
 
 ```nginxconfig
 location ~* ^/static/ {
+    # Determine if static file exists. If not, send to PHP to create it.
     if (!-f $document_root$uri) {
         rewrite .+ /image.php last;
     }
