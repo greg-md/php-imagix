@@ -24,9 +24,10 @@ You don't care anymore about generating new images from their sources when your 
 
 # How It Works
 
-**First of all**, you have to create a manager and optionally an URL decorator for it.
+**First of all**, you have to initialize the manager.
 
-The decorator helps you to rewrite image URLs to/from HTTP Server(Apache/Nginx).
+Optionally you can create an URL decorator for it.
+It helps to rewrite image URLs to/from HTTP Server(Apache/Nginx).
 
 ```php
 class StaticDecorator implements ImageDecoratorStrategy
