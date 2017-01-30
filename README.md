@@ -109,6 +109,15 @@ $manager->send($_SERVER['REQUEST_URI']);
 
 Initialize the manager.
 
+```php
+__construct(ImageManager $manager, string $sourcePath, string $destinationPath, ImageDecoratorStrategy $decorator = null)
+```
+
+`$manager` - Intervention image manager;  
+`$sourcePath` - Source path;  
+`$destinationPath` - Destination path;  
+`$decorator` - Decorator.
+
 _Example:_
 
 ```php
