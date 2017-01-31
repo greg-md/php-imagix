@@ -304,3 +304,7 @@ $manager->remove(); // Will remove all formatted images.
 
 $manager->remove('square'); // Will remove only square images.
 ```
+
+# License
+
+MIT © [Grigorii Duca](http://greg.md)
