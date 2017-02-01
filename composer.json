@@ -2,7 +2,7 @@
   "name": "greg-md/php-static-image",
   "type": "library",
   "description": "Greg PHP Static Image",
-  "keywords": [ "greg", "php-static-image" ],
+  "keywords": [ "greg-md", "greg-php", "php-static-image", "static-image", "php", "image", "intervention", "intervention-image", "web-artisans" ],
   "homepage": "https://github.com/greg-md/php-static-image",
   "license": "MIT",
   "authors": [
