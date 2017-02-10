@@ -11,7 +11,7 @@ Save images as static in real-time in different formats using [Intervention Imag
 
 You don't care anymore about generating new images from their sources when your app UI was changed. Only thing you should do is to add new formats or change existent.
 
-# Table of contents:
+# Table of Contents:
 
 * [Requirements](#requirements)
 * [How It Works](#how-it-works)
