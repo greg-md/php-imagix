@@ -17,6 +17,8 @@ You don't care anymore about generating new images from their sources when your 
 * [How It Works](#how-it-works)
 * [Magic methods](#magic-methods)
 * [Methods](#methods)
+* [License](#license)
+* [Huuuge Quote](#huuuge-quote)
 
 # Requirements
 
@@ -101,7 +103,9 @@ In **image.php** you will dispatch new files that was not generated yet in `/sta
 $manager->send($_SERVER['REQUEST_URI']);
 ```
 
-# Magic Methods
+# Methods
+
+**Magic methods**:
 
 * [__construct](#__construct)
 
@@ -146,7 +150,7 @@ $manager = new \Greg\StaticImage\StaticImageManager(
 );
 ```
 
-# Methods
+Below is a list of **supported methods**:
 
 * [format](#format) - Register an image format;
 * [url](#url) - Get formatted image URL;
@@ -308,3 +312,7 @@ $manager->remove('square'); // Will remove only square images.
 # License
 
 MIT © [Grigorii Duca](http://greg.md)
+
+# Huuuge Quote
+
+![I fear not the man who has practiced 10,000 programming languages once, but I fear the man who has practiced one programming language 10,000 times. #horrorsquad](http://greg.md/huuuge-quote-fb.jpg)
