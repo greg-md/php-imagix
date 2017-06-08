@@ -7,7 +7,6 @@ use Greg\Support\Dir;
 use Greg\Support\File;
 use Greg\Support\Http\Response;
 use Greg\Support\Image;
-use Greg\Support\Obj;
 use Greg\Support\Str;
 use Intervention\Image\ImageManager;
 
@@ -281,7 +280,7 @@ class StaticImageManager
 
         $image = $this->manager->make($source);
 
-        Obj::call($this->getFormat($format), $image);
+        call_user_func_array($this->getFormat($format), [$image]);
 
         $image->save($destination);
     }
