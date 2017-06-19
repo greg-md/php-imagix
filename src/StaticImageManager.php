@@ -98,21 +98,7 @@ class StaticImageManager
 
     public function url($source, $format)
     {
-        $this->checkSource($source);
-
-        $this->checkFormat($format);
-
-        if (!$sourceFile = $this->realFile($this->sourcePath, $source)) {
-            return $source;
-        }
-
-        $destinationName = pathinfo($source, PATHINFO_FILENAME) . '@' . $format . '@' . (int) filemtime($sourceFile);
-
-        if ($destinationExtension = pathinfo($source, PATHINFO_EXTENSION)) {
-            $destinationExtension = '.' . $destinationExtension;
-        }
-
-        $url = $this->baseDir($source) . '/' . $destinationName . $destinationExtension;
+        $url = $this->prepareDestination($source, $format);
 
         if ($this->decorator) {
             $url = $this->decorator->output($url);
@@ -129,23 +115,7 @@ class StaticImageManager
             $destination = $this->decorator->input($destination);
         }
 
-        $destinationName = pathinfo($destination, PATHINFO_FILENAME);
-
-        if (strpos($destinationName, '@') === false) {
-            throw new \Exception('Wrong destination file format.');
-        }
-
-        list($sourceName, $format) = explode('@', $destinationName);
-
-        $this->checkFormat($format);
-
-        if ($sourceExtension = pathinfo($destination, PATHINFO_EXTENSION)) {
-            $sourceExtension = '.' . $sourceExtension;
-        }
-
-        $source = $this->baseDir($destination) . '/' . $sourceName . $sourceExtension;
-
-        return [$source, $format];
+        return $this->sourceFromDestination($destination);
     }
 
     public function effective($destination)
@@ -159,9 +129,13 @@ class StaticImageManager
     {
         $this->checkDestination($destination);
 
+        if ($this->decorator) {
+            $destination = $this->decorator->input($destination);
+        }
+
         $destinationFile = $this->imageFile($this->destinationPath, $destination);
 
-        list($source, $formatName) = $this->source($destination);
+        list($source, $formatName) = $this->sourceFromDestination($destination);
 
         if (!$sourceFile = $this->imageFile($this->sourcePath, $source)) {
             $this->unlink($source, $formatName);
@@ -175,7 +149,7 @@ class StaticImageManager
 
         $this->unlink($source, $formatName);
 
-        $currentDestination = $this->url($source, $formatName);
+        $currentDestination = $this->prepareDestination($source, $formatName);
 
         $currentDestinationFile = $this->destinationPath . $currentDestination;
 
@@ -279,6 +253,8 @@ class StaticImageManager
         call_user_func_array($this->getFormat($format), [$image]);
 
         $image->save($destination);
+
+        return $this;
     }
 
     protected function checkSource($source)
@@ -331,5 +307,45 @@ class StaticImageManager
         }
 
         return $file;
+    }
+
+    private function sourceFromDestination($destination)
+    {
+        $destinationName = pathinfo($destination, PATHINFO_FILENAME);
+
+        if (strpos($destinationName, '@') === false) {
+            throw new \Exception('Wrong destination file format.');
+        }
+
+        list($sourceName, $format) = explode('@', $destinationName);
+
+        $this->checkFormat($format);
+
+        if ($sourceExtension = pathinfo($destination, PATHINFO_EXTENSION)) {
+            $sourceExtension = '.' . $sourceExtension;
+        }
+
+        $source = $this->baseDir($destination) . '/' . $sourceName . $sourceExtension;
+
+        return [$source, $format];
+    }
+
+    private function prepareDestination($source, $format)
+    {
+        $this->checkSource($source);
+
+        $this->checkFormat($format);
+
+        if (!$sourceFile = $this->realFile($this->sourcePath, $source)) {
+            return $source;
+        }
+
+        $destinationName = pathinfo($source, PATHINFO_FILENAME) . '@' . $format . '@' . (int) filemtime($sourceFile);
+
+        if ($destinationExtension = pathinfo($source, PATHINFO_EXTENSION)) {
+            $destinationExtension = '.' . $destinationExtension;
+        }
+
+        return $this->baseDir($source) . '/' . $destinationName . $destinationExtension;
     }
 }
