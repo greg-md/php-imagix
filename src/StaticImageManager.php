@@ -115,7 +115,7 @@ class StaticImageManager
         $url = $this->baseDir($source) . '/' . $destinationName . $destinationExtension;
 
         if ($this->decorator) {
-            $this->decorator->output($url);
+            $url = $this->decorator->output($url);
         }
 
         return $url;
