@@ -159,10 +159,6 @@ class StaticImageManager
     {
         $this->checkDestination($destination);
 
-        if ($this->decorator) {
-            $destination = $this->decorator->input($destination);
-        }
-
         $destinationFile = $this->imageFile($this->destinationPath, $destination);
 
         list($source, $formatName) = $this->source($destination);
