@@ -43,7 +43,7 @@ class StaticImageManager
 
     protected function setSourcePath($path)
     {
-        $this->sourcePath = (string) $path;
+        $this->sourcePath = (string) realpath($path);
 
         return $this;
     }
@@ -55,7 +55,7 @@ class StaticImageManager
 
     protected function setDestinationPath($path)
     {
-        $this->destinationPath = (string) $path;
+        $this->destinationPath = (string) realpath($path);
 
         return $this;
     }
@@ -284,7 +284,9 @@ class StaticImageManager
 
     protected function realFile($path, $name)
     {
-        return ($file = realpath($path . $name) and Str::startsWith($file, $path)) ? $file : null;
+        $file = realpath($path . $name);
+
+        return ($file and Str::startsWith($file, $path)) ? $file : null;
     }
 
     protected function checkFormat($format)
