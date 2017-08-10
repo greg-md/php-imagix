@@ -1,135 +1,190 @@
 <?php
 
-namespace Greg\StaticImage\Tests;
+namespace Greg\Imagix;
 
-use Greg\StaticImage\StaticImageManager;
 use Greg\Support\Dir;
+use Greg\Support\Http\Response;
 use Intervention\Image\Constraint;
 use Intervention\Image\Image;
 use Intervention\Image\ImageManager;
 use PHPUnit\Framework\TestCase;
 
-class StaticImageManagerTest extends TestCase
+class ImagixTest extends TestCase
 {
-    /**
-     * @var StaticImageManager
-     */
-    private $collector = null;
+    private $sourcePath = __DIR__ . '/img';
+
+    private $destinationPath = __DIR__ . '/imagix';
 
     public function setUp()
     {
-        parent::setUp();
+        Dir::make($this->destinationPath);
+    }
 
-        Dir::make(__DIR__ . '/static');
+    public function tearDown()
+    {
+        Dir::unlink($this->destinationPath);
+    }
 
-        $this->collector = new StaticImageManager(new ImageManager(), __DIR__ . '/img', __DIR__ . '/static');
+    public function testCanInstantiate()
+    {
+        $imagix = new Imagix(new ImageManager(), $this->sourcePath, $this->destinationPath);
 
-        $this->collector->format('favicon', function (Image $image) {
+        $this->assertInstanceOf(Imagix::class, $imagix);
+    }
+
+    public function testCanInstantiateWithADecorator()
+    {
+        $decorator = $this->mockDecorator();
+
+        $imagix = new Imagix(new ImageManager(), $this->sourcePath, $this->destinationPath, $decorator);
+
+        $this->assertInstanceOf(Imagix::class, $imagix);
+    }
+
+    public function testCanGetManager()
+    {
+        $imagix = new Imagix(new ImageManager(), $this->sourcePath, $this->destinationPath);
+
+        $this->assertInstanceOf(ImageManager::class, $imagix->manager());
+    }
+
+    public function testCanGetSourcePath()
+    {
+        $imagix = new Imagix(new ImageManager(), $this->sourcePath, $this->destinationPath);
+
+        $this->assertEquals($this->sourcePath, $imagix->sourcePath());
+    }
+
+    public function testCanGetDestinationPath()
+    {
+        $imagix = new Imagix(new ImageManager(), $this->sourcePath, $this->destinationPath);
+
+        $this->assertEquals($this->destinationPath, $imagix->destinationPath());
+    }
+
+    public function testCanGetDecorator()
+    {
+        $decorator = $this->mockDecorator();
+
+        $imagix = new Imagix(new ImageManager(), $this->sourcePath, $this->destinationPath, $decorator);
+
+        $this->assertEquals($decorator, $imagix->decorator());
+    }
+
+    public function testCanGetUrl()
+    {
+        $imagix = new Imagix(new ImageManager(), $this->sourcePath, $this->destinationPath);
+
+        $imagix->format('foo', function () {});
+
+        $this->assertEquals($this->faviconUrl('foo'), $imagix->url('/favicon.png', 'foo'));
+    }
+
+    public function testCanGetDecoratedUrl()
+    {
+        $decorator = $this->mockDecorator();
+
+        $decorator->method('output')->willReturn('/decorated/path');
+
+        $imagix = new Imagix(new ImageManager(), $this->sourcePath, $this->destinationPath, $decorator);
+
+        $imagix->format('foo', function () {});
+
+        $this->assertEquals('/decorated/path', $imagix->url('/favicon.png', 'foo'));
+    }
+
+    public function testCanGetSource()
+    {
+        $imagix = new Imagix(new ImageManager(), $this->sourcePath, $this->destinationPath);
+
+        $this->assertEquals(['/favicon.png', 'foo'], $imagix->source($this->faviconUrl('foo')));
+    }
+
+    public function testCanGetDecoratedSource()
+    {
+        $decorator = $this->mockDecorator();
+
+        $decorator->method('input')->willReturn($this->faviconUrl('foo'));
+
+        $imagix = new Imagix(new ImageManager(), $this->sourcePath, $this->destinationPath, $decorator);
+
+        $this->assertEquals(['/favicon.png', 'foo'], $imagix->source('/foo'));
+    }
+
+    public function testCanCompileAnImage()
+    {
+        $imagix = new Imagix(new ImageManager(), $this->sourcePath, $this->destinationPath);
+
+        $imagix->format('foo', function (Image $image) {
             $image->resize(128, 128, function (Constraint $constraint) {
                 $constraint->aspectRatio();
                 $constraint->upsize();
             });
         });
+
+        $destination = $imagix->url('/favicon.png', 'foo');
+
+        $file = $imagix->compile($destination);
+
+        $this->assertFileExists($file);
     }
 
-    public function tearDown()
+    public function testCanCompileAnImageWithADecorator()
     {
-        parent::tearDown();
+        $decorator = $this->mockDecorator();
 
-        Dir::unlink(__DIR__ . '/static');
+        $decorator->method('input')->willReturn($this->faviconUrl('foo'));
+
+        $imagix = new Imagix(new ImageManager(), $this->sourcePath, $this->destinationPath, $decorator);
+
+        $imagix->format('foo', function (Image $image) {
+            $image->resize(128, 128, function (Constraint $constraint) {
+                $constraint->aspectRatio();
+                $constraint->upsize();
+            });
+        });
+
+        $file = $imagix->compile('/decorated');
+
+        $this->assertFileExists($file);
     }
 
-    /** @test */
-    public function it_gets_formatted_url()
+    public function testCanNotCompileAnImageIfAlreadyCompiled()
     {
-        $destination = '/favicon@favicon@' . filemtime(__DIR__ . '/img/favicon.png') . '.png';
+        $imagix = new Imagix(new ImageManager(), $this->sourcePath, $this->destinationPath);
 
-        $this->assertEquals($destination, $this->collector->url('/favicon.png', 'favicon'));
+        $imagix->format('foo', function (Image $image) {
+            $image->resize(128, 128, function (Constraint $constraint) {
+                $constraint->aspectRatio();
+                $constraint->upsize();
+            });
+        });
 
-        $this->assertEquals($destination, $this->collector->url('/favicon.png', 'favicon'));
+        $file = $imagix->compile($this->faviconUrl('foo'));
 
-        $this->assertEquals(['/favicon.png', 'favicon'], $this->collector->source($destination));
+        $fileMTime = filemtime($file);
+
+        $newFile = $imagix->compile($this->faviconUrl('foo'));
+
+        $this->assertEquals(filemtime($newFile), $fileMTime);
     }
 
-    /** @test */
-    public function it_returns_empty()
+    public function testCanGetEffectiveUrl()
     {
-        $this->assertEquals('/foo', $this->collector->url('/foo', 'favicon'));
-    }
+        $imagix = new Imagix(new ImageManager(), $this->sourcePath, $this->destinationPath);
 
-    /** @test */
-    public function it_throws_an_exception_when_format_not_found()
+        $imagix->format('foo', function () {});
+
+        $this->assertEquals($this->faviconUrl('foo'), $imagix->effective('/favicon@foo@12345.png'));
+    }
+    
+    public function testCanThrowExceptionIfSourceFileNotExists()
     {
+        $imagix = new Imagix(new ImageManager(), $this->sourcePath, $this->destinationPath);
+
         $this->expectException(\Exception::class);
 
-        $this->collector->url('/favicon.png', 'undefined');
-    }
-
-    /** @test */
-    public function it_throws_an_error_when_get_wrong_source()
-    {
-        $this->expectException(\Exception::class);
-
-        $this->collector->source('');
-    }
-
-    /** @test */
-    public function it_throws_an_error_when_get_wrong_destination()
-    {
-        $this->expectException(\Exception::class);
-
-        $this->collector->url('', 'format');
-    }
-
-    /** @test */
-    public function it_formats_an_image()
-    {
-        $destination = '/favicon@favicon@' . filemtime(__DIR__ . '/img/favicon.png') . '.png';
-
-        $this->assertEquals(__DIR__ . '/static' . $destination, $this->collector->compile($destination));
-
-        // Load from cache
-        $this->assertEquals(__DIR__ . '/static' . $destination, $this->collector->compile($destination));
-    }
-
-    /** @test */
-    public function it_throws_an_error_when_get_wrong_file()
-    {
-        $this->expectException(\Exception::class);
-
-        $this->collector->compile('');
-    }
-
-    /** @test */
-    public function it_throws_an_error_when_get_wrong_destination_on_file()
-    {
-        $this->expectException(\Exception::class);
-
-        $this->collector->compile('/foo');
-    }
-
-    /** @test */
-    public function it_throws_an_error_when_source_not_exists_on_file()
-    {
-        $this->expectException(\Exception::class);
-
-        copy(__DIR__ . '/img/favicon.png', __DIR__ . '/img/favicon2.png');
-
-        $destination = '/favicon2@favicon@' . filemtime(__DIR__ . '/img/favicon2.png') . '.png';
-
-        $this->collector->compile($destination);
-
-        unlink(__DIR__ . '/img/favicon2.png');
-
-        $this->collector->compile($destination);
-    }
-
-    /** @test */
-    public function it_throws_an_error_when_source_not_exists_on_file_2()
-    {
-        $this->expectException(\Exception::class);
-
-        $this->collector->compile('/../ImageCollectorTest.php');
+        $imagix->compile('/undefined@foo@12345.png');
     }
 
     /**
@@ -137,26 +192,212 @@ class StaticImageManagerTest extends TestCase
      *
      * @runInSeparateProcess
      */
-    public function it_sends_an_image()
+    public function testCanSendAnImage()
     {
-        $destination = '/favicon@favicon@' . filemtime(__DIR__ . '/img/favicon.png') . '.png';
+        Response::mockHeaders();
+
+        $imagix = new Imagix(new ImageManager(), $this->sourcePath, $this->destinationPath);
+
+        $imagix->format('foo', function (Image $image) {
+            $image->resize(128, 128, function (Constraint $constraint) {
+                $constraint->aspectRatio();
+                $constraint->upsize();
+            });
+        });
 
         ob_start();
 
-        $this->collector->send($destination);
+        $imagix->send($this->faviconUrl('foo'));
 
         $image = ob_get_clean();
 
-        $this->assertTrue($image === file_get_contents(__DIR__ . '/static' . $destination));
+        $this->assertTrue($image === file_get_contents($this->destinationPath . $this->faviconUrl('foo')));
+    }
+
+    public function testCanRedirectToAnEffectiveImageUrl()
+    {
+        Response::mockHeaders();
+
+        $imagix = new Imagix(new ImageManager(), $this->sourcePath, $this->destinationPath);
+
+        $imagix->format('foo', function () {});
+
+        $imagix->send('/favicon@foo@12345.png');
+
+        $this->assertContains('Location: ' . $this->faviconUrl('foo'), Response::mockHeadersSent());
+    }
+
+    public function testCanRemoveFilesFromOneFormat()
+    {
+        $imagix = new Imagix(new ImageManager(), $this->sourcePath, $this->destinationPath);
+
+        $imagix->format('foo', function () {});
+
+        $destination = $imagix->url('/favicon.png', 'foo');
+
+        $file = $imagix->compile($destination);
+
+        $this->assertFileExists($file);
+
+        $imagix->remove('foo');
+
+        $this->assertFileNotExists($file);
+    }
+
+    public function testCanRemoveFilesFromOneFormatUsingLifetime()
+    {
+        $imagix = new Imagix(new ImageManager(), $this->sourcePath, $this->destinationPath);
+
+        $imagix->format('foo', function () {});
+
+        $imagix->format('bar', function () {});
+
+        $file1 = $imagix->compile($imagix->url('/favicon.png', 'foo'));
+
+        $this->assertFileExists($file1);
+
+        sleep(1);
+
+        $file2 = $imagix->compile($imagix->url('/favicon.png', 'bar'));
+
+        $this->assertFileExists($file2);
+
+        $imagix->remove('foo', 1);
+
+        $this->assertFileNotExists($file1);
+
+        $this->assertFileExists($file2);
+    }
+
+    public function testCanRemoveFilesFromAllFormats()
+    {
+        $imagix = new Imagix(new ImageManager(), $this->sourcePath, $this->destinationPath);
+
+        $imagix->format('foo', function () {});
+
+        $imagix->format('bar', function () {});
+
+        $file1 = $imagix->compile($imagix->url('/favicon.png', 'foo'));
+
+        $file2 = $imagix->compile($imagix->url('/favicon.png', 'bar'));
+
+        $this->assertFileExists($file1);
+
+        $this->assertFileExists($file2);
+
+        $imagix->remove();
+
+        $this->assertFileNotExists($file1);
+
+        $this->assertFileNotExists($file2);
+    }
+
+    public function testCanRemoveFilesFromAllFormatsUsingLifetime()
+    {
+        $imagix = new Imagix(new ImageManager(), $this->sourcePath, $this->destinationPath);
+
+        $imagix->format('foo', function () {});
+
+        $imagix->format('bar', function () {});
+
+        $imagix->format('baz', function () {});
+
+        $file1 = $imagix->compile($imagix->url('/favicon.png', 'foo'));
+
+        $this->assertFileExists($file1);
+
+        $file2 = $imagix->compile($imagix->url('/favicon.png', 'bar'));
+
+        $this->assertFileExists($file2);
+
+        sleep(1);
+
+        $file3 = $imagix->compile($imagix->url('/favicon.png', 'baz'));
+
+        $this->assertFileExists($file3);
+
+        $imagix->remove(null, 1);
+
+        $this->assertFileNotExists($file1);
+
+        $this->assertFileNotExists($file2);
+
+        $this->assertFileExists($file3);
+    }
+
+    public function testCanThrowExceptionWhenWrongSource()
+    {
+        $imagix = new Imagix(new ImageManager(), $this->sourcePath, $this->destinationPath);
+
+        $this->expectException(\Exception::class);
+
+        $imagix->url('', 'foo');
+    }
+
+    public function testCanThrowExceptionWhenEmptyDestination()
+    {
+        $imagix = new Imagix(new ImageManager(), $this->sourcePath, $this->destinationPath);
+
+        $this->expectException(\Exception::class);
+
+        $imagix->source('');
+    }
+
+    public function testCanThrowExceptionWhenWrongFormat()
+    {
+        $imagix = new Imagix(new ImageManager(), $this->sourcePath, $this->destinationPath);
+
+        $this->expectException(\Exception::class);
+
+        $imagix->format('../', function () {});
+    }
+
+    public function testCanThrowExceptionWhenFromatNotFound()
+    {
+        $imagix = new Imagix(new ImageManager(), $this->sourcePath, $this->destinationPath);
+
+        $this->expectException(\Exception::class);
+
+        $imagix->url('/favicon.png', 'undefined');
+    }
+
+    public function testCanThrowExceptionWhenFilePathIsNotAllowed()
+    {
+        $imagix = new Imagix(new ImageManager(), $this->sourcePath, $this->destinationPath);
+
+        $this->expectException(\Exception::class);
+
+        $imagix->compile('/../' . basename(__FILE__));
+    }
+
+    public function testCanThrowExceptionWhenWrongDestination()
+    {
+        $imagix = new Imagix(new ImageManager(), $this->sourcePath, $this->destinationPath);
+
+        $this->expectException(\Exception::class);
+
+        $imagix->source('/favicon.png');
+    }
+
+    public function testCanReturnSourceUrlIfFileNotFound()
+    {
+        $imagix = new Imagix(new ImageManager(), $this->sourcePath, $this->destinationPath);
+
+        $imagix->format('foo', function () {});
+
+        $this->assertEquals('/undefined.png', $imagix->url('/undefined.png', 'foo'));
     }
 
     /**
-     * @test
-     *
-     * @runInSeparateProcess
+     * @return ImagixDecoratorStrategy|\PHPUnit_Framework_MockObject_MockObject
      */
-    public function it_redirects_when_old_image()
+    private function mockDecorator(): ImagixDecoratorStrategy
     {
-        $this->collector->send('/favicon@favicon@12345.png');
+        return $this->getMockBuilder(ImagixDecoratorStrategy::class)->getMock();
+    }
+
+    private function faviconUrl(string $format)
+    {
+        return '/favicon@' . $format . '@' . filemtime(__DIR__ . '/img/favicon.png') . '.png';
     }
 }

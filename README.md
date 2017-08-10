@@ -1,15 +1,16 @@
-# Greg PHP Static Image
+# Greg PHP Imagix
 
 [![StyleCI](https://styleci.io/repos/70835580/shield?style=flat)](https://styleci.io/repos/70835580)
-[![Build Status](https://travis-ci.org/greg-md/php-static-image.svg)](https://travis-ci.org/greg-md/php-static-image)
-[![Total Downloads](https://poser.pugx.org/greg-md/php-static-image/d/total.svg)](https://packagist.org/packages/greg-md/php-static-image)
-[![Latest Stable Version](https://poser.pugx.org/greg-md/php-static-image/v/stable.svg)](https://packagist.org/packages/greg-md/php-static-image)
-[![Latest Unstable Version](https://poser.pugx.org/greg-md/php-static-image/v/unstable.svg)](https://packagist.org/packages/greg-md/php-static-image)
-[![License](https://poser.pugx.org/greg-md/php-static-image/license.svg)](https://packagist.org/packages/greg-md/php-static-image)
+[![Build Status](https://travis-ci.org/greg-md/php-imagix.svg)](https://travis-ci.org/greg-md/php-imagix)
+[![Total Downloads](https://poser.pugx.org/greg-md/php-imagix/d/total.svg)](https://packagist.org/packages/greg-md/php-imagix)
+[![Latest Stable Version](https://poser.pugx.org/greg-md/php-imagix/v/stable.svg)](https://packagist.org/packages/greg-md/php-imagix)
+[![Latest Unstable Version](https://poser.pugx.org/greg-md/php-imagix/v/unstable.svg)](https://packagist.org/packages/greg-md/php-imagix)
+[![License](https://poser.pugx.org/greg-md/php-imagix/license.svg)](https://packagist.org/packages/greg-md/php-imagix)
 
-Save images as static in real-time in different formats using [Intervention Image](http://image.intervention.io/).
+Save images in real-time in different formats using [Intervention Image](http://image.intervention.io/).
 
-You don't care anymore about generating new images from their sources when your app UI was changed. Only thing you should do is to add new formats or change existent.
+You don't care anymore about generating new images from their sources when your app UI was changed.
+Only thing you should do is to add new formats or change existent and the application will take care of them by itself.
 
 # Table of Contents:
 
@@ -26,16 +27,16 @@ You don't care anymore about generating new images from their sources when your 
 
 # How It Works
 
-**First of all**, you have to initialize the manager.
+**First of all**, you have to initialize the Imagix.
 
 Optionally you can create an URL decorator for it.
 It helps to rewrite image URLs to/from HTTP Server(Apache/Nginx).
 
 ```php
-class StaticDecorator implements ImageDecoratorStrategy
+class ImagixDecorator implements ImageDecoratorStrategy
 {
-    // In Nginx we will use /static path for static content.
-    private $nginxUri = '/static';
+    // Will use /imagix public path for generated images.
+    private $uri = '/imagix';
     
     public function output($url)
     {
@@ -44,23 +45,25 @@ class StaticDecorator implements ImageDecoratorStrategy
 
     public function input($url)
     {
-        return \Greg\Support\Str::shift($url, $this->nginxUri);
+        return \Greg\Support\Str::shift($url, $this->uri);
     }
 }
 
 $sourcePath = __DIR__ . '/img';
 
-$destinationPath = __DIR__ . '/static';
+$destinationPath = __DIR__ . '/imagix';
 
-$manager = new \Greg\StaticImage\StaticImageManager(
-    new Intervention\Image\ImageManager(), $sourcePath, $destinationPath, new StaticDecorator()
-);
+$decorator = new ImagixDecorator();
+
+$intervention = new Intervention\Image\ImageManager();
+
+$imagix = new \Greg\Imagix\Imagix($intervention, $sourcePath, $destinationPath, $decorator);
 ```
 
 **Next**, create image formats.
 
 ```php
-$manager->format('square', function (\Intervention\Image\Image $image) {
+$imagix->format('square', function (\Intervention\Image\Image $image) {
     $image->resize(600, 600, function (\Intervention\Image\Constraint $constraint) {
         $constraint->aspectRatio();
         $constraint->upsize();
@@ -73,8 +76,8 @@ $manager->format('square', function (\Intervention\Image\Image $image) {
 It will generate an URL in format `<image_path>/<image_name>@<format>@<last_modified>.<image_extension>`.
 
 ```php
-// result: /static/pictures/picture@square@129648839.jpg
-$imageUrl = $manager->url('/pictures/picture.jpg', 'square');
+// result: /imagix/pictures/picture@square@129648839.jpg
+$imageUrl = $imagix->url('/pictures/picture.jpg', 'square');
 
 echo '<img src="' . $imageUrl . '" width="600" height="600" alt="Picture" />';
 ```
@@ -84,9 +87,9 @@ To see the results, you have to config your `http server`.
 **Nginx**
 
 ```nginxconfig
-# Static Image Manager
-location ~* ^/static/.+ {
-    # Determine if static file exists. If not, send to PHP to create it.
+# Imagix
+location ~* ^/imagix/.+ {
+    # If images doesn't exists, send to PHP to create it.
     if (!-f $document_root$uri) {
         rewrite .+ /image.php last;
     }
@@ -98,10 +101,10 @@ location ~* ^/static/.+ {
 }
 ```
 
-In **image.php** you will dispatch new files that was not generated yet in `/static` path.
+In **image.php** you will dispatch new files that was not generated yet in `/imagix` path.
 
 ```php
-$manager->send($_SERVER['REQUEST_URI']);
+$imagix->send($_SERVER['REQUEST_URI']);
 ```
 
 # Methods
@@ -126,10 +129,10 @@ __construct(ImageManager $manager, string $sourcePath, string $destinationPath, 
 _Example:_
 
 ```php
-class StaticDecorator implements ImageDecoratorStrategy
+class ImagixDecorator implements ImageDecoratorStrategy
 {
-    // In Nginx we will use /static path for static content.
-    private $nginxUri = '/static';
+    // Will use /imagix public path for generated images.
+    private $uri = '/imagix';
     
     public function output($url)
     {
@@ -138,17 +141,19 @@ class StaticDecorator implements ImageDecoratorStrategy
 
     public function input($url)
     {
-        return \Greg\Support\Str::shift($url, $this->nginxUri);
+        return \Greg\Support\Str::shift($url, $this->uri);
     }
 }
 
 $sourcePath = __DIR__ . '/img';
 
-$destinationPath = __DIR__ . '/static';
+$destinationPath = __DIR__ . '/imagix';
 
-$manager = new \Greg\StaticImage\StaticImageManager(
-    new Intervention\Image\ImageManager(), $sourcePath, $destinationPath, new StaticDecorator()
-);
+$decorator = new ImagixDecorator();
+
+$intervention = new Intervention\Image\ImageManager();
+
+$imagix = new \Greg\Imagix\ImagixManager($intervention, $sourcePath, $destinationPath, $decorator);
 ```
 
 Below is a list of **supported methods**:
@@ -177,7 +182,7 @@ format(string $name, callable(\Intervention\Image\Image $image): void $callable)
 _Example:_
 
 ```php
-$manager->format('square', function (\Intervention\Image\Image $image) {
+$imagix->format('square', function (\Intervention\Image\Image $image) {
     $image->resize(600, 600, function (\Intervention\Image\Constraint $constraint) {
         $constraint->aspectRatio();
         $constraint->upsize();
@@ -199,7 +204,7 @@ url(string $source, string $format): string
 _Example:_
 
 ```php
-$manager->url('/pictures/picture.jpg', 'square'); // result: /pictures/picture@square@129648839.jpg
+$imagix->url('/pictures/picture.jpg', 'square'); // result: /pictures/picture@square@129648839.jpg
 ```
 
 ## source
@@ -215,7 +220,7 @@ source(string $destination): string
 _Example:_
 
 ```php
-$manager->source('/pictures/picture@square@129648839.jpg'); // result: /pictures/picture.jpg
+$imagix->source('/pictures/picture@square@129648839.jpg'); // result: /pictures/picture.jpg
 ```
 
 ## effective
@@ -238,7 +243,7 @@ effective(string $destination): string
 _Example:_
 
 ```php
-$manager->effective('/pictures/picture@square@129642346.jpg'); // result: /pictures/picture@square@129648839.jpg
+$imagix->effective('/pictures/picture@square@129642346.jpg'); // result: /pictures/picture@square@129648839.jpg
 ```
 
 ## compile
@@ -254,7 +259,7 @@ compile(string $destination): string
 _Example:_
 
 ```php
-$manager->compile('/pictures/picture@square@129648839.jpg'); // result: /path/to/pictures/picture@square@129648839.jpg
+$imagix->compile('/pictures/picture@square@129648839.jpg'); // result: /path/to/pictures/picture@square@129648839.jpg
 ```
 
 ## send
@@ -270,7 +275,7 @@ send(string $destination): $this
 _Example:_
 
 ```php
-$manager->send('/pictures/picture@square@129648839.jpg');
+$imagix->send('/pictures/picture@square@129648839.jpg');
 ```
 
 ## unlink
@@ -288,7 +293,7 @@ unlink(string $source, string $format = null, int $lifetime = 0): $this
 _Example:_
 
 ```php
-$manager->unlink('/pictures/picture.jpg');
+$imagix->unlink('/pictures/picture.jpg');
 ```
 
 ## remove
@@ -305,9 +310,9 @@ remove(string $format = null, int $lifetime = 0): $this
 _Example:_
 
 ```php
-$manager->remove(); // Will remove all formatted images.
+$imagix->remove(); // Will remove all formatted images.
 
-$manager->remove('square'); // Will remove only square images.
+$imagix->remove('square'); // Will remove only square images.
 ```
 
 # License
