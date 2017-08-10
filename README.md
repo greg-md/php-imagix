@@ -16,7 +16,6 @@ Only thing you should do is to add new formats or change existent and the applic
 
 * [Requirements](#requirements)
 * [How It Works](#how-it-works)
-* [Magic methods](#magic-methods)
 * [Methods](#methods)
 * [License](#license)
 * [Huuuge Quote](#huuuge-quote)
@@ -156,7 +155,7 @@ $intervention = new Intervention\Image\ImageManager();
 $imagix = new \Greg\Imagix\ImagixManager($intervention, $sourcePath, $destinationPath, $decorator);
 ```
 
-Below is a list of **supported methods**:
+**Supported methods**:
 
 * [format](#format) - Register an image format;
 * [url](#url) - Get formatted image URL;

@@ -144,6 +144,10 @@ class Imagix
 
     public function unlink(string $source, string $format = null, int $lifetime = 0)
     {
+        if ($format) {
+            $this->validateFormat($format);
+        }
+
         $sourceName = pathinfo($source, PATHINFO_FILENAME);
 
         $destinationNames = $sourceName . '@' . ($format ?: '*') . '@*';

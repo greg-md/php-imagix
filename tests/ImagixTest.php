@@ -9,7 +9,7 @@ use Intervention\Image\Image;
 use Intervention\Image\ImageManager;
 use PHPUnit\Framework\TestCase;
 
-class StaticImageManagerTest extends TestCase
+class ImagixTest extends TestCase
 {
     private $sourcePath = __DIR__ . '/img';
 
