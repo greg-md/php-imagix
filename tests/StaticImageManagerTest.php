@@ -9,7 +9,7 @@ use Intervention\Image\Image;
 use Intervention\Image\ImageManager;
 use PHPUnit\Framework\TestCase;
 
-class ImagixTest extends TestCase
+class StaticImageManagerTest extends TestCase
 {
     private $sourcePath = __DIR__ . '/img';
 
@@ -75,7 +75,8 @@ class ImagixTest extends TestCase
     {
         $imagix = new Imagix(new ImageManager(), $this->sourcePath, $this->destinationPath);
 
-        $imagix->format('foo', function () {});
+        $imagix->format('foo', function () {
+        });
 
         $this->assertEquals($this->faviconUrl('foo'), $imagix->url('/favicon.png', 'foo'));
     }
@@ -88,7 +89,8 @@ class ImagixTest extends TestCase
 
         $imagix = new Imagix(new ImageManager(), $this->sourcePath, $this->destinationPath, $decorator);
 
-        $imagix->format('foo', function () {});
+        $imagix->format('foo', function () {
+        });
 
         $this->assertEquals('/decorated/path', $imagix->url('/favicon.png', 'foo'));
     }
@@ -173,11 +175,12 @@ class ImagixTest extends TestCase
     {
         $imagix = new Imagix(new ImageManager(), $this->sourcePath, $this->destinationPath);
 
-        $imagix->format('foo', function () {});
+        $imagix->format('foo', function () {
+        });
 
         $this->assertEquals($this->faviconUrl('foo'), $imagix->effective('/favicon@foo@12345.png'));
     }
-    
+
     public function testCanThrowExceptionIfSourceFileNotExists()
     {
         $imagix = new Imagix(new ImageManager(), $this->sourcePath, $this->destinationPath);
@@ -220,7 +223,8 @@ class ImagixTest extends TestCase
 
         $imagix = new Imagix(new ImageManager(), $this->sourcePath, $this->destinationPath);
 
-        $imagix->format('foo', function () {});
+        $imagix->format('foo', function () {
+        });
 
         $imagix->send('/favicon@foo@12345.png');
 
@@ -231,7 +235,8 @@ class ImagixTest extends TestCase
     {
         $imagix = new Imagix(new ImageManager(), $this->sourcePath, $this->destinationPath);
 
-        $imagix->format('foo', function () {});
+        $imagix->format('foo', function () {
+        });
 
         $destination = $imagix->url('/favicon.png', 'foo');
 
@@ -248,9 +253,11 @@ class ImagixTest extends TestCase
     {
         $imagix = new Imagix(new ImageManager(), $this->sourcePath, $this->destinationPath);
 
-        $imagix->format('foo', function () {});
+        $imagix->format('foo', function () {
+        });
 
-        $imagix->format('bar', function () {});
+        $imagix->format('bar', function () {
+        });
 
         $file1 = $imagix->compile($imagix->url('/favicon.png', 'foo'));
 
@@ -273,9 +280,11 @@ class ImagixTest extends TestCase
     {
         $imagix = new Imagix(new ImageManager(), $this->sourcePath, $this->destinationPath);
 
-        $imagix->format('foo', function () {});
+        $imagix->format('foo', function () {
+        });
 
-        $imagix->format('bar', function () {});
+        $imagix->format('bar', function () {
+        });
 
         $file1 = $imagix->compile($imagix->url('/favicon.png', 'foo'));
 
@@ -296,11 +305,14 @@ class ImagixTest extends TestCase
     {
         $imagix = new Imagix(new ImageManager(), $this->sourcePath, $this->destinationPath);
 
-        $imagix->format('foo', function () {});
+        $imagix->format('foo', function () {
+        });
 
-        $imagix->format('bar', function () {});
+        $imagix->format('bar', function () {
+        });
 
-        $imagix->format('baz', function () {});
+        $imagix->format('baz', function () {
+        });
 
         $file1 = $imagix->compile($imagix->url('/favicon.png', 'foo'));
 
@@ -349,7 +361,8 @@ class ImagixTest extends TestCase
 
         $this->expectException(\Exception::class);
 
-        $imagix->format('../', function () {});
+        $imagix->format('../', function () {
+        });
     }
 
     public function testCanThrowExceptionWhenFromatNotFound()
@@ -383,7 +396,8 @@ class ImagixTest extends TestCase
     {
         $imagix = new Imagix(new ImageManager(), $this->sourcePath, $this->destinationPath);
 
-        $imagix->format('foo', function () {});
+        $imagix->format('foo', function () {
+        });
 
         $this->assertEquals('/undefined.png', $imagix->url('/undefined.png', 'foo'));
     }
