@@ -90,7 +90,7 @@ To see the results, you have to config your `http server`.
 location ~* ^/imagix/.+ {
     # If images doesn't exists, send to PHP to create it.
     if (!-f $document_root$uri) {
-        rewrite .+ /image.php last;
+        rewrite .+ /imagix.php last;
     }
 
     expires max;
@@ -100,7 +100,7 @@ location ~* ^/imagix/.+ {
 }
 ```
 
-In **image.php** you will dispatch new files that was not generated yet in `/imagix` path.
+In **imagix.php** you will dispatch new files that was not generated yet in `/imagix` path.
 
 ```php
 $imagix->send($_SERVER['REQUEST_URI']);
