@@ -7,6 +7,7 @@ use Greg\Support\Http\Response;
 use Intervention\Image\Constraint;
 use Intervention\Image\Image;
 use Intervention\Image\ImageManager;
+use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
 class ImagixTest extends TestCase
@@ -15,12 +16,12 @@ class ImagixTest extends TestCase
 
     private $destinationPath = __DIR__ . '/imagix';
 
-    public function setUp()
+    protected function setUp(): void
     {
         Dir::make($this->destinationPath);
     }
 
-    public function tearDown()
+    protected function tearDown(): void
     {
         Dir::unlink($this->destinationPath);
     }
@@ -403,7 +404,7 @@ class ImagixTest extends TestCase
     }
 
     /**
-     * @return ImagixDecoratorStrategy|\PHPUnit_Framework_MockObject_MockObject
+     * @return ImagixDecoratorStrategy|MockObject
      */
     private function mockDecorator(): ImagixDecoratorStrategy
     {
